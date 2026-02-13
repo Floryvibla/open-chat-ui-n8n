@@ -1,5 +1,9 @@
-import { ComponentExample } from "@/components/component-example";
+import { Chat } from "@/components/chat";
 
 export default function Page() {
-return <ComponentExample />;
+  return (
+    <div className="container mx-auto max-w-2xl h-screen">
+      <Chat />
+    </div>
+  );
 }
