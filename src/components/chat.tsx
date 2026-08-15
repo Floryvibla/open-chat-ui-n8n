@@ -19,6 +19,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { useChat } from "@/hooks/use-chat";
+import { extractItemContents, hasStreamEvents } from "@/lib/n8n-stream-parser";
 import type { UIMessage } from "ai";
 
 export function Chat() {
@@ -26,6 +27,7 @@ export function Chat() {
     api: "https://n8n.biuma.com.br/webhook/open-chat-n8n",
     body: (message) => ({
       chatInput: message.parts[0].text,
+      sessionId: "124",
     }),
   });
 
@@ -33,11 +35,32 @@ export function Chat() {
     append(message.text);
   };
 
+  const parseMessages = messages.map((message) => {
+    if (message.role === "user") {
+      return message;
+    }
+    return {
+      ...message,
+      parts: message.parts
+        .map((part) => {
+          const extracted = extractItemContents(part?.text);
+          if (extracted) {
+            return { ...part, text: extracted };
+          }
+          if (hasStreamEvents(part?.text)) {
+            return { ...part, text: "" };
+          }
+          return part;
+        })
+        .filter((part) => !(part.type === "text" && !part.text?.trim())),
+    };
+  });
+
   return (
     <div className="h-screen flex flex-col">
       <Conversation className="flex-1">
         <ConversationContent>
-          {messages.map((message) => (
+          {parseMessages.map((message) => (
             <Message key={message.id} from={message.role as UIMessage["role"]}>
               <MessageContent>
                 {message.parts.map((part, i) =>
